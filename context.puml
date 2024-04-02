@@ -1,0 +1,51 @@
+@startuml C4_Elements
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+!define FONTAWESOME https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/font-awesome-5
+!define DEVICONS https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/devicons2
+!include DEVICONS/mysql.puml
+!include DEVICONS/spring.puml
+!include DEVICONS/react_original_wordmark.puml
+!include FONTAWESOME/users.puml
+
+AddRelTag("async", $lineStyle = DashedLine())
+
+title "Digital Wallet Full Cycle"
+Person(CUSTOMER, "Customer", "Digital Wallet Customer", $sprite="users")
+System_Ext(PAYMENT_GATEWAY, "Payment Gateway", "Processador de Pagamento")
+
+System_Boundary(DIGITAL_WALLET, "Digital Wallet") {
+    Container(SPA, "SPA", "React", "Digital Wallet Web App", $sprite="react_original_wordmark")
+
+    Container(WALLET_CORE, "Wallet Core", "SpringBoot", "Wallet Core is responsible for the transactions")
+    Container(BALANCES, "Balance Microservice", "SpringBoot", "Returns customer balances")
+    Container(STATEMENTS, "Statement Microservice", "SpringBoot", "Returns customer statement")
+    Container(PAYMENT_SERVICE, "Payment Microservice", "SpringBoot", "Handle with payments")
+    Container(API_GATEWAY, "API Gateway", "Spring Boot", "Proxy requests", $sprite="spring")
+    ContainerQueue(KAFKA, "Kafka Broker", "kafka")
+
+    ContainerDb(WALLET_CORE_DB, "Wallet DB", "Mysql", $sprite="mysql")
+    Rel(WALLET_CORE, WALLET_CORE_DB, "Mysql Driver")
+
+    ContainerDb(BALANCES_DB, "Balances DB", "Mysql", $sprite="mysql")
+    Rel(BALANCES, BALANCES_DB, "Mysql Driver")
+
+    ContainerDb(STATEMENTS_DB, "Statements DB", "Mysql", $sprite="mysql")
+    Rel(STATEMENTS, STATEMENTS_DB, "Mysql Driver")
+
+    ContainerDb(PAYMENT_DB, "Payments DB", "Mysql", $sprite="mysql")
+    Rel(PAYMENT_SERVICE, PAYMENT_DB, "Mysql Driver")
+
+    Rel(CUSTOMER, SPA, "https")
+    Rel(SPA, API_GATEWAY, "json/https")
+    Rel(API_GATEWAY, WALLET_CORE, "json/https")
+    Rel(API_GATEWAY, BALANCES, "json/https")
+    Rel(API_GATEWAY, STATEMENTS, "json/https")
+    Rel(WALLET_CORE, PAYMENT_SERVICE, "json/https")
+    Rel(PAYMENT_SERVICE, PAYMENT_GATEWAY, "json/https")
+
+    Rel(WALLET_CORE, KAFKA, "Publica mensagens")
+    Rel(KAFKA, BALANCES, "Consome mensagens", $tags = "async")
+    Rel(KAFKA, STATEMENTS, "Consome mensagens", $tags = "async")
+}
+@enduml
